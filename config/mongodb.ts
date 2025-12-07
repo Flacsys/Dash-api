@@ -9,5 +9,5 @@ async function connect(uri?: string) {
     console.log('MongoDB connected to', connectionString);
 }
 
-// add a default export so other modules can `import connect from './config/mongodb'`
+
 export default connect;

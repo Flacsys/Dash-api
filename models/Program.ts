@@ -5,7 +5,10 @@ const programSchema = new mongoose.Schema({
     code: { type: String },
     description: String,
     isActive: { type: Boolean, default: false },
-    modules: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Module' }],
+    modules: [{
+        _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Module' },
+        title: String
+    }],
     participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Participant' }],
     credits: { type: Number, default: 3 },
     semester: Number,

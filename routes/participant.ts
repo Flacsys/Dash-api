@@ -20,4 +20,7 @@ router.post('/:participantId/modules/:moduleId/grades', authenticateToken, requi
 // update participant's module (final score, status)
 router.put('/:participantId/modules/:moduleId', authenticateToken, requireRole('admin', 'superadmin'), ctrl.updateParticipantModule);
 
+// delete participant
+router.delete('/:id', authenticateToken, requireRole('admin', 'superadmin'), ctrl.deleteParticipant);
+
 export default router;
