@@ -1,7 +1,9 @@
 ﻿import * as mongoose from "mongoose"
 
+const ENV_MONGO_URI = process.env.MONGO_URI;
+
 async function connect(uri?: string) {
-    const connectionString =  "mongodb://localhost:27017/test";
+    const connectionString = uri || ENV_MONGO_URI;
     if (!connectionString) {
         throw new Error('MongoDB connection string is missing');
     }

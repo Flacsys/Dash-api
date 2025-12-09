@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only app.ts",
+    "dev": "ts-node-dev -r dotenv/config --respawn --transpile-only app.ts",
     "build": "tsc",
     "type-check": "tsc --noEmit"
   },
