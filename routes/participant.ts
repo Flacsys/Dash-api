@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/roles';
 
 // create participant: admin+ allowed
 router.post('/', authenticateToken, requireRole('admin', 'superadmin'), ctrl.createParticipant);
+router.get('/me', authenticateToken, ctrl.getMe);
 router.get('/:id', authenticateToken, requireRole('admin', 'superadmin'), ctrl.getParticipant);
 
 // add: list participants

@@ -1,93 +1,106 @@
-﻿import { parse as csvParse } from 'csv-parse/sync';
-import { stringify } from 'csv-stringify';
+﻿import { Request, Response, NextFunction } from 'express';
 import multer from 'multer';
-import { Participant } from '../models/Participant';
-import { Module } from '../models/Module';
+import { ImportService } from '../services/importService';
 
 const upload = multer({ storage: multer.memoryStorage() });
+const importService = new ImportService();
 
-/**
- * Apply mapping and simple transforms.
- * mapping: { csvHeaderName: "firstName" }
- * transforms: { fieldName: ["trim","toLower","number"] }
- */
-function applyMappingAndTransforms(row: any, mapping: any = {}, transforms: any = {}) {
-    const out: any = {};
-    for (const [csvKey, value] of Object.entries(row)) {
-        if (mapping && mapping[csvKey]) {
-            let field = mapping[csvKey];
-            let v: any = value;
-            const ops = transforms[field] || [];
-            for (const op of ops) {
-                if (op === 'trim') v = String(v).trim();
-                else if (op === 'toLower') v = String(v).toLowerCase();
-                else if (op === 'toUpper') v = String(v).toUpperCase();
-                else if (op === 'number') v = Number(v);
-                // add more ops as needed
-            }
-            out[field] = v;
-        } else {
-            // by default, keep raw under same key
-            out[csvKey] = value;
-        }
-    }
-    return out;
-}
-
-async function importParticipantsCsv(req, res) {
-    // fields in body:
-    // mapping: JSON, transforms: JSON, enrollModuleId: optional module id to enroll everyone into
-    const { mapping, transforms, enrollModuleId } = req.body;
-    const file = req.file;
-    if (!file) return res.status(400).json({ message: 'CSV file required as form-data "file"' });
-
-    const records: any[] = [];
+async function importParticipantsCsv(req: Request, res: Response, next: NextFunction) {
     try {
-        const rows = csvParse(file.buffer.toString(), { columns: true, trim: false }) as any[];
-        for (const row of rows) {
-            const mapped = applyMappingAndTransforms(row, mapping ? JSON.parse(mapping) : {}, transforms ? JSON.parse(transforms) : {});
-            // Create participant
-            const p = new Participant({
-                firstName: mapped.firstName || mapped.firstname || mapped.FIRSTNAME,
-                lastName: mapped.lastName || mapped.lastname || mapped.LASTNAME,
-                email: mapped.email || mapped.Email,
-                metadata: mapped.metadata || {}
-            });
+        const { mapping, transforms, enrollModuleId } = req.body;
+        const file = (req as any).file;
+        if (!file) return res.status(400).json({ message: 'CSV file required as form-data "file"' });
 
-            // optionally enroll
-            if (enrollModuleId) {
-                // We should ideally check if module exists once, but for now let's just push
-                // Assuming enrollModuleId is a valid ObjectId string
-                p.modules.push({ module: enrollModuleId });
-            }
-
-            await p.save();
-            records.push({ id: p._id, email: p.email });
-        }
-        res.json({ imported: records.length, records });
-    } catch (err: any) {
-        return res.status(400).json({ message: 'CSV parse error', err: err.message });
+        const result = await importService.importParticipantsCsv(
+            file.buffer,
+            mapping,
+            transforms,
+            enrollModuleId
+        );
+        res.json(result);
+    } catch (error) {
+        next(error);
     }
 }
 
-async function exportParticipants(req, res) {
-    // supports ?format=csv|json
-    const format = (req.query.format || 'json').toLowerCase();
-    const participants = await Participant.find().lean();
+async function exportParticipants(req: Request, res: Response, next: NextFunction) {
+    try {
+        const format = (req.query.format as string || 'json').toLowerCase();
+        const participants = await importService.getParticipantsForExport();
 
-    if (format === 'json') {
-        return res.json(participants);
-    } else if (format === 'csv') {
-        const columns = Object.keys(participants[0] || {}).filter(k => k !== '__v');
-        stringify(participants, { header: true, columns }, (err: any, output: string) => {
-            if (err) return res.status(500).json({ message: err.message });
+        if (format === 'json') {
+            return res.json(participants);
+        } else if (format === 'csv') {
+            const csvOutput = await importService.exportToCsv(participants);
             res.setHeader('Content-Disposition', 'attachment; filename=participants.csv');
             res.setHeader('Content-Type', 'text/csv');
-            res.send(output);
-        });
-    } else {
-        return res.status(400).json({ message: 'format must be json or csv' });
+            res.send(csvOutput);
+        } else {
+            return res.status(400).json({ message: 'format must be json or csv' });
+        }
+    } catch (error) {
+        next(error);
     }
 }
 
-export { upload, importParticipantsCsv, exportParticipants };
+async function importGeneric(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { model } = req.params;
+        const { mapping } = req.body; // JSON string
+        const file = (req as any).file;
+        if (!file) return res.status(400).json({ message: 'File required' });
+
+        const result = await importService.importCsvGeneric(model, file.buffer, mapping);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+}
+
+async function previewImport(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { model } = req.params;
+        const { mapping } = req.body;
+        const file = (req as any).file;
+        if (!file) return res.status(400).json({ message: 'File required' });
+
+        const result = await importService.previewImportGeneric(model, file.buffer, file.mimetype, mapping);
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+}
+
+async function confirmImport(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { model } = req.params;
+        const { data, originalName, size, type } = req.body;
+        // data array is the approved JSON from preview
+
+        const uploadedBy = (req as any).user ? (req as any).user.userId : undefined; // Assuming auth middleware populates user
+
+        const result = await importService.confirmImportGeneric(model, data, {
+            originalName,
+            size,
+            type,
+            uploadedBy
+        });
+        res.json(result);
+    } catch (error) {
+        next(error);
+    }
+}
+
+async function extractData(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { text, schema } = req.body;
+        if (!text || !schema) return res.status(400).json({ message: 'Text and target schema (array of strings) required' });
+
+        const result = await importService.extractWithAI(text, schema);
+        res.json({ extracted: result });
+    } catch (error) {
+        next(error);
+    }
+}
+
+export { upload, importParticipantsCsv, exportParticipants, importGeneric, previewImport, confirmImport, extractData };

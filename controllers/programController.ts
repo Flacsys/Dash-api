@@ -1,41 +1,46 @@
-﻿import { Program } from '../models/Program';
+﻿import { Request, Response, NextFunction } from 'express';
+import { ProgramService } from '../services/programService';
 
-export async function listPrograms(req, res) {
-    const programs = await Program.find().lean();
-    res.json(programs);
+const programService = new ProgramService();
+
+export async function listPrograms(req: Request, res: Response, next: NextFunction) {
+    try {
+        const programs = await programService.list();
+        res.json(programs);
+    } catch (error) {
+        next(error);
+    }
 }
 
-export async function getProgram(req, res) {
-    const p = await Program.findById(req.params.id);
-    if (!p) return res.status(404).json({ message: 'Program not found' });
-    res.json(p);
+export async function getProgram(req: Request, res: Response, next: NextFunction) {
+    try {
+        const p = await programService.findById(req.params.id);
+        if (!p) return res.status(404).json({ message: 'Program not found' });
+        res.json(p);
+    } catch (error) {
+        next(error);
+    }
 }
 
-export async function createProgram(req, res) {
-    const { title, semester, duration } = req.body;
-    if (!title) return res.status(400).json({ message: 'title required' });
+export async function createProgram(req: Request, res: Response, next: NextFunction) {
+    try {
+        const { title, semester, duration } = req.body;
+        if (!title) return res.status(400).json({ message: 'title required' });
         if (!semester) return res.status(400).json({ message: 'semester required' });
         if (!duration) return res.status(400).json({ message: 'duration required' });
 
-    const code = generateProgramCode(title);
-    const p = new Program({ title, semester, duration, code });
-    await p.save();
-    res.status(201).json(p);
+        const p = await programService.create({ title, semester, duration });
+        res.status(201).json(p);
+    } catch (error) {
+        next(error);
+    }
 }
 
-function generateProgramCode(title: string): string {
-    const words = title.split(' ').filter(w => w.length > 0);
-    const acronym = words.slice(0, 3).map(w => w[0].toUpperCase()).join('');
-
-    const now = new Date();
-    const quarter = Math.floor(now.getMonth() / 3) + 1;
-    const year = now.getFullYear().toString().slice(-2);
-
-    return `${acronym}${quarter}${year}`;
-}
-
-export async function deleteProgram(req, res) {
-    const p = await Program.findByIdAndDelete(req.params.id);
-    if (!p) return res.status(404).json({ message: 'Program not found' });
-    res.json({ message: 'deleted' });
+export async function deleteProgram(req: Request, res: Response, next: NextFunction) {
+    try {
+        await programService.delete(req.params.id);
+        res.json({ message: 'deleted' });
+    } catch (error) {
+        next(error);
+    }
 }

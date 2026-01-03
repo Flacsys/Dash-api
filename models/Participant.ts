@@ -1,6 +1,46 @@
 ﻿import mongoose from "mongoose";
 
-const participantSchema = new mongoose.Schema({
+export interface IGrade {
+    name: string;
+    score: number;
+    maxScore?: number;
+    date?: Date;
+}
+
+export interface IParticipantModule extends mongoose.Document {
+    module: {
+        _id: mongoose.Types.ObjectId;
+        title: string;
+    };
+    enrolledAt: Date;
+    grades: IGrade[];
+    finalScore?: number;
+    gradePoint?: number;
+    gradeLetter?: string;
+    status: 'Registered' | 'In Progress' | 'Completed' | 'dropped' | 'enrolled';
+}
+
+export interface IParticipant extends mongoose.Document {
+    fullName: string;
+    email: string;
+    phone?: string;
+    regNo?: string;
+    division?: string;
+    parish?: string;
+    deanery?: string;
+    modules: mongoose.Types.DocumentArray<IParticipantModule>;
+    enrolledPrograms: Array<{
+        _id: mongoose.Types.ObjectId;
+        title: string;
+    }>;
+    status: 'active' | 'inactive' | 'graduated';
+    createdBy?: mongoose.Types.ObjectId;
+    createdAt: Date;
+    metadata?: Record<string, any>;
+    passwordHash?: string;
+}
+
+const participantSchema = new mongoose.Schema<IParticipant>({
     fullName: { type: String },
     email: { type: String, required: true, unique: true },
     phone: String,
@@ -34,7 +74,8 @@ const participantSchema = new mongoose.Schema({
     }],
     status: { type: String, enum: ['active', 'inactive', 'graduated'], default: 'active' },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
-    createdAt: { type: Date, default: Date.now }
+    createdAt: { type: Date, default: Date.now },
+    passwordHash: { type: String, select: false }
 });
 
 const getAcronym = (str: string) => {
@@ -103,4 +144,4 @@ participantSchema.pre('save', async function (next) {
     next();
 });
 
-export const Participant = mongoose.model('Participant', participantSchema);
+export const Participant = mongoose.model<IParticipant>('Participant', participantSchema);

@@ -1,6 +1,7 @@
 ﻿import * as jwt from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
 import { Admin } from '../models/Admin';
+import { Participant } from '../models/Participant';
 
 const JWT_SECRET = process.env.JWT_SECRET as string;
 if (!JWT_SECRET) {
@@ -18,7 +19,12 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
 
         if (!payload?.sub) return res.status(401).json({ message: 'Invalid token' });
 
-        const user = await Admin.findById(payload.sub).select('-passwordHash');
+        let user;
+        if (payload.role === 'student') {
+            user = await Participant.findById(payload.sub).select('-passwordHash');
+        } else {
+            user = await Admin.findById(payload.sub).select('-passwordHash');
+        }
 
         if (!user) return res.status(401).json({ message: 'Invalid token' });
 

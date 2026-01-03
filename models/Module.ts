@@ -1,6 +1,19 @@
 ﻿import mongoose from "mongoose";
 
-const moduleSchema = new mongoose.Schema({
+export interface IModule extends mongoose.Document {
+    title: string;
+    code?: string;
+    description?: string;
+    program: {
+        _id: mongoose.Types.ObjectId;
+        title: string;
+    };
+    credits: number;
+    createdBy?: mongoose.Types.ObjectId;
+    createdAt: Date;
+}
+
+const moduleSchema = new mongoose.Schema<IModule>({
     title: { type: String, required: true },
     code: { type: String },
     description: String,
@@ -13,5 +26,5 @@ const moduleSchema = new mongoose.Schema({
     createdAt: { type: Date, default: Date.now }
 });
 
-export const Module = mongoose.model('Module', moduleSchema);
+export const Module = mongoose.model<IModule>('Module', moduleSchema);
 
