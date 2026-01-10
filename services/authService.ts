@@ -61,44 +61,44 @@ export class AuthService {
         };
     }
 
-    async loginStudent(email: string, regNo: string, password?: string): Promise<{ token: string, student: Partial<IParticipant> }> {
-        // Find by email OR regNo
-        const query: any = {};
-        if (email) query.email = email;
-        else if (regNo) query.regNo = regNo;
+    async loginParticipant(participantId: string, password?: string): Promise<{ token: string, participant: Partial<IParticipant> }> {
 
-        if (Object.keys(query).length === 0) {
-            throw { statusCode: 400, message: 'Provide email or regNo' };
-        }
+        const query = {
+            $or: [
+                { email: participantId },
+                { regNo: participantId }
+            ]
+        };
 
-        const student = await Participant.findOne(query).select('+passwordHash +status').exec();
-        if (!student) {
+        const participant = await Participant.findOne(query).select('+passwordHash +status').exec();
+        if (!participant) {
             throw { statusCode: 401, message: 'Invalid credentials' };
         }
 
-        if (!student.passwordHash) {
+        if (!participant.passwordHash) {
             throw { statusCode: 401, message: 'Account not set up for login. Contact admin.' };
         }
 
         if (password) {
-            const ok = await bcrypt.compare(password, student.passwordHash);
+            const ok = await bcrypt.compare(password, participant.passwordHash);
             if (!ok) throw { statusCode: 401, message: 'Invalid credentials' };
         }
 
         const token = jwt.sign(
-            { sub: student._id, role: 'student', status: student.status },
+            { sub: participant._id, role: 'participant', status: participant.status },
             JWT_SECRET,
             { expiresIn: JWT_EXPIRES_IN as jwt.SignOptions['expiresIn'] }
         );
 
         return {
             token,
-            student: {
-                _id: student._id,
-                fullName: student.fullName,
-                email: student.email,
-                regNo: student.regNo,
-                status: student.status
+            participant: {
+                _id: participant._id,
+                fullName: participant.fullName,
+                email: participant.email,
+                regNo: participant.regNo,
+                status: participant.status,
+                isDefaultPassword: participant.isDefaultPassword
             }
         };
     }

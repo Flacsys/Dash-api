@@ -13,6 +13,7 @@ export class ParticipantService {
             const salt = await bcrypt.genSalt(10);
             data.passwordHash = await bcrypt.hash(data.password, salt);
             delete data.password;
+            data.isDefaultPassword = true;
         }
 
         const participant = new Participant(data);

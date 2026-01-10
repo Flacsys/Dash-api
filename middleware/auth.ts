@@ -19,17 +19,24 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
 
         if (!payload?.sub) return res.status(401).json({ message: 'Invalid token' });
 
-        let user;
-        if (payload.role === 'student') {
-            user = await Participant.findById(payload.sub).select('-passwordHash');
+        if (payload.role === 'participant') {
+            const participant = await Participant.findById(payload.sub).select('-passwordHash');
+            if (participant) {
+                (req as any).participant = participant;
+                next();
+                return;
+            }
         } else {
-            user = await Admin.findById(payload.sub).select('-passwordHash');
+            const admin = await Admin.findById(payload.sub).select('-passwordHash');
+            if (admin) {
+                (req as any).admin = admin;
+                (req as any).user = admin; // Deprecate: keep for backward compatibility till full refactor
+                next();
+                return;
+            }
         }
 
-        if (!user) return res.status(401).json({ message: 'Invalid token' });
-
-        (req as any).user = user;
-        next();
+        return res.status(401).json({ message: 'Invalid token or user not found' });
 
     } catch (err) {
         console.error('authenticateToken failed for token:', req.headers.authorization, 'err:', err);
