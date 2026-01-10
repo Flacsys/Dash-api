@@ -17,14 +17,14 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     }
 }
 
-export async function loginStudent(req: Request, res: Response, next: NextFunction) {
+export async function loginParticipant(req: Request, res: Response, next: NextFunction) {
     try {
-        const { email, regNo, password } = req.body;
-        if ((!email || !regNo) && !password) {
-            return res.status(400).json({ message: 'email/regNo and password required' });
+        const { participantId, password } = req.body;
+        if ((!participantId) && !password) {
+            return res.status(400).json({ message: 'participantId and password required' });
         }
 
-        const result = await authService.loginStudent(email, regNo, password);
+        const result = await authService.loginParticipant(participantId, password);
         res.json(result);
     } catch (error) {
         next(error);

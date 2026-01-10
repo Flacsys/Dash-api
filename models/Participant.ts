@@ -38,6 +38,7 @@ export interface IParticipant extends mongoose.Document {
     createdAt: Date;
     metadata?: Record<string, any>;
     passwordHash?: string;
+    isDefaultPassword?: boolean;
 }
 
 const participantSchema = new mongoose.Schema<IParticipant>({
@@ -75,7 +76,8 @@ const participantSchema = new mongoose.Schema<IParticipant>({
     status: { type: String, enum: ['active', 'inactive', 'graduated'], default: 'active' },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
     createdAt: { type: Date, default: Date.now },
-    passwordHash: { type: String, select: false }
+    passwordHash: { type: String, select: false },
+    isDefaultPassword: { type: Boolean, default: true }
 });
 
 const getAcronym = (str: string) => {

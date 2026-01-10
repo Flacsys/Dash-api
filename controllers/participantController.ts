@@ -38,10 +38,10 @@ export async function getParticipant(req: Request, res: Response, next: NextFunc
 
 export async function getMe(req: Request, res: Response, next: NextFunction) {
     try {
-        const user = (req as any).user;
-        if (!user || !user._id) return res.status(401).json({ message: 'Not authenticated' });
+        const participant = (req as any).participant;
+        if (!participant || !participant._id) return res.status(401).json({ message: 'Not authenticated' });
 
-        const p = await participantService.findById(user._id);
+        const p = await participantService.findById(participant._id);
         if (!p) return res.status(404).json({ message: 'Participant not found' });
         res.json({ participant: p });
     } catch (error) {

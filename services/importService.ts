@@ -103,8 +103,7 @@ export class ImportService {
             const sheet = workbook.Sheets[sheetName];
             return XLSX.utils.sheet_to_json(sheet);
         }
-
-        // Default to CSV
+        
         return csvParse(buffer.toString(), { columns: true, trim: true, skip_empty_lines: true });
     }
 
@@ -156,6 +155,19 @@ export class ImportService {
             try {
                 // Determine unique key based on model for existing check? 
                 // For simplified generic, we just try to save. 
+
+                // SPECIAL HANDLING: Participant Name Construction
+                if (modelName.toLowerCase() === 'participant') {
+                    // Ensure fullName exists
+                    if (!item.fullName && (item.firstName || item.lastName)) {
+                        item.fullName = `${item.firstName || ''} ${item.lastName || ''}`.trim();
+                    }
+                    // Ensure phone exists mapping
+                    if (!item.phone && item.phoneNumber) {
+                        item.phone = item.phoneNumber;
+                    }
+                }
+
                 const doc = new model(item);
                 await doc.save();
                 savedRecords.push({ _id: doc._id, ...item });

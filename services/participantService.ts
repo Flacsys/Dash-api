@@ -13,6 +13,7 @@ export class ParticipantService {
             const salt = await bcrypt.genSalt(10);
             data.passwordHash = await bcrypt.hash(data.password, salt);
             delete data.password;
+            data.isDefaultPassword = true;
         }
 
         const participant = new Participant(data);
@@ -63,7 +64,7 @@ export class ParticipantService {
         const filter: mongoose.FilterQuery<IParticipant> = {};
         if (query) {
             const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-            filter.$or = [{ firstName: re }, { lastName: re }, { email: re }];
+            filter.$or = [{ fullName: re }, { email: re }, { regNo: re }];
         }
         if (status) filter.status = status as any;
 
